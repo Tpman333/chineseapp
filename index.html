@@ -499,10 +499,130 @@
                 box-shadow: 2px 0 10px var(--shadow);
             }
 
+
+        }
+
+        /* Quiz Styles */
+        .quiz-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .quiz-start-screen,
+        .quiz-result-screen {
+            text-align: center;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+        }
+
+        .quiz-progress {
+            margin-bottom: 1rem;
+            background: var(--border-color);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .quiz-progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .quiz-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            text-align: center;
+        }
+
+        .quiz-question {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        .quiz-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .quiz-option-btn {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quiz-option-btn:hover {
+            border-color: var(--primary-color);
+            background: var(--primary-light);
+        }
+
+        .quiz-option-btn.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .quiz-option-btn.wrong {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .quiz-feedback {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .quiz-feedback.show {
+            display: block;
+        }
+
+        .quiz-feedback.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .quiz-feedback.wrong {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
             .sidebar.open {
                 transform: translateX(0);
             }
+
+            .backdrop.open {
+                display: block;
+            }
+
+            .quiz-options {
+                grid-template-columns: 1fr;
+            }
         }
+
 
         @keyframes fadeIn {
             from {
@@ -539,6 +659,7 @@
                 <button class="tab-btn" data-tab="oral" aria-selected="false" role="tab">Oral (口语)</button>
                 <button class="tab-btn" data-tab="grammar" aria-selected="false" role="tab">Grammar (语法)</button>
                 <button class="tab-btn" data-tab="chars" aria-selected="false" role="tab">Flashcards (识字)</button>
+                <button class="tab-btn" data-tab="quiz" aria-selected="false" role="tab">Quiz (测试)</button>
             </div>
 
             <div id="view-core" class="scroll-view active" role="tabpanel">
@@ -578,6 +699,41 @@
                     <button id="btn-reveal-all" class="btn-action">Reveal All Pinyin</button>
                 </div>
                 <div class="grid" id="charGrid"></div>
+            </div>
+
+            <!-- Quiz View -->
+            <div id="view-quiz" class="scroll-view" role="tabpanel">
+                <div id="quiz-start" class="quiz-start-screen">
+                    <h2>Practice Quiz</h2>
+                    <p style="margin: 1rem 0; color: var(--text-secondary);">Test your knowledge of this lesson with 60
+                        generated questions.</p>
+                    <button class="action-btn primary" onclick="App.startQuiz()">Start Quiz</button>
+                </div>
+
+                <div id="quiz-active" class="quiz-container" style="display:none;">
+                    <div class="quiz-progress">
+                        <div class="quiz-progress-bar" id="quizProgressBar"></div>
+                    </div>
+                    <div style="text-align:right; font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-secondary);">
+                        Question <span id="quizQNum">1</span>/60
+                    </div>
+                    <div class="quiz-card">
+                        <div class="quiz-question" id="quizQuestionText"></div>
+                        <div class="quiz-options" id="quizOptions"></div>
+                        <div class="quiz-feedback" id="quizFeedback"></div>
+                    </div>
+                </div>
+
+                <div id="quiz-result" class="quiz-result-screen" style="display:none;">
+                    <h2>Quiz Complete!</h2>
+                    <div style="font-size:3rem; margin:1rem 0;" id="quizFinalScore"></div>
+                    <p id="quizFeedbackText"></p>
+                    <div style="margin-top:2rem;">
+                        <button class="action-btn secondary" onclick="App.loadLesson(App.state.currentLessonIdx)">Review
+                            Lesson</button>
+                        <button class="action-btn primary" onclick="App.startQuiz()">Try Again</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -8118,7 +8274,13 @@
                     showTrans: false,
                     showPinyin: false
                 },
-                completed: [] // Array of lesson IDs
+                completed: [], // Array of lesson IDs
+                quiz: {
+                    active: false,
+                    currentQuestionIdx: 0,
+                    score: 0,
+                    questions: []
+                }
             },
             voice: null,
 
@@ -8349,6 +8511,253 @@
                         <div class="l-desc">${topic}</div>
                     </button>`;
                 }).join('');
+            },
+
+            /* --- Quiz Logic --- */
+            startQuiz(lessonIdx = this.state.currentLessonIdx) {
+                const lesson = BOOK_DATA[lessonIdx];
+                if (!lesson) return;
+
+                // Reset State
+                this.state.quiz = {
+                    active: true,
+                    currentQuestionIdx: 0,
+                    score: 0,
+                    questions: this.generateQuestions(lessonIdx)
+                };
+
+                // Show View
+                this.setTab('quiz');
+                document.getElementById('quiz-start').style.display = 'none';
+                document.getElementById('quiz-active').style.display = 'block';
+                document.getElementById('quiz-result').style.display = 'none';
+
+                this.renderQuiz();
+            },
+
+            generateQuestions(lessonIdx) {
+                const lesson = BOOK_DATA[lessonIdx];
+                const questions = [];
+                const totalQuestions = 60;
+
+                // Helper to get random item from array
+                const randomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+                // 1. Gather all possible items (Chars, Words, Sentence)
+                const chars = lesson.coreCharacters || [];
+                const words = lesson.vocabulary || [];
+                // const sentence = lesson.mainSentence; // TODO: Add sentence fill-in
+
+                // If not enough data, duplicate to fill
+                // We will rotate through types: 
+                // 0: Char -> Pinyin
+                // 1: Pinyin -> Char
+                // 2: Char -> English
+                // 3: English -> Char
+                // 4: Word -> Pinyin
+                // 5: Pinyin -> Word
+
+                for (let i = 0; i < totalQuestions; i++) {
+                    const type = i % 6;
+                    let q = {};
+
+                    if (type < 4 && chars.length > 0) {
+                        const target = randomItem(chars);
+                        q = this.createCharQuestion(target, type, lessonIdx);
+                    } else if (words.length > 0) {
+                        const target = randomItem(words);
+                        q = this.createWordQuestion(target, type, lessonIdx);
+                    } else {
+                        // Fallback if missing data
+                        const target = chars.length > 0 ? randomItem(chars) : { char: '?', pinyin: '?', english: '?' };
+                        q = this.createCharQuestion(target, 0, lessonIdx);
+                    }
+                    questions.push(q);
+                }
+
+                return questions;
+            },
+
+            createCharQuestion(target, type, lessonIdx) {
+                let questionText = "";
+                let correctAnswer = "";
+                let distractors = [];
+
+                // Distractor pool: random chars from current lesson + some from random other lessons
+                const allChars = BOOK_DATA[lessonIdx].coreCharacters.concat(
+                    BOOK_DATA[(lessonIdx + 1) % BOOK_DATA.length].coreCharacters
+                );
+
+                switch (type) {
+                    case 0: // Char -> Pinyin
+                        questionText = `What is the Pinyin for: <span style="font-size:2rem; display:block; margin-top:10px">${target.char}</span>`;
+                        correctAnswer = target.pinyin;
+                        distractors = this.getDistractors(target, allChars, 'pinyin');
+                        break;
+                    case 1: // Pinyin -> Char
+                        questionText = `Which character is: <span style="font-size:1.5rem; display:block; margin-top:10px">${target.pinyin}</span>`;
+                        correctAnswer = target.char;
+                        distractors = this.getDistractors(target, allChars, 'char');
+                        break;
+                    case 2: // Char -> English
+                        questionText = `What does this mean: <span style="font-size:2rem; display:block; margin-top:10px">${target.char}</span>`;
+                        correctAnswer = target.english;
+                        distractors = this.getDistractors(target, allChars, 'english');
+                        break;
+                    case 3: // English -> Char
+                        questionText = `Which character means: <span style="font-size:1.5rem; display:block; margin-top:10px">${target.english}</span>`;
+                        correctAnswer = target.char;
+                        distractors = this.getDistractors(target, allChars, 'char');
+                        break;
+                }
+
+                return this.formatQuestion(questionText, correctAnswer, distractors);
+            },
+
+            createWordQuestion(target, type, lessonIdx) {
+                // Type 4: Word -> Pinyin (or English)
+                // Type 5: Pinyin -> Word
+
+                let questionText = "";
+                let correctAnswer = "";
+                let distractors = [];
+                const allWords = BOOK_DATA[lessonIdx].vocabulary.concat(
+                    BOOK_DATA[(lessonIdx + 1) % BOOK_DATA.length].vocabulary || []
+                );
+
+                if (type === 4) { // Word -> Pinyin
+                    const wordStr = target.word || target.w;
+                    questionText = `Pinyin for: <span style="font-size:1.5rem; display:block; margin-top:10px">${wordStr}</span>`;
+                    correctAnswer = target.pinyin || target.p;
+                    distractors = this.getDistractors(target, allWords, 'pinyin', 'p');
+                } else { // Pinyin -> Word
+                    const pinyinStr = target.pinyin || target.p;
+                    questionText = `Word for: <span style="font-size:1.5rem; display:block; margin-top:10px">${pinyinStr}</span>`;
+                    correctAnswer = target.word || target.w;
+                    distractors = this.getDistractors(target, allWords, 'word', 'w');
+                }
+
+                return this.formatQuestion(questionText, correctAnswer, distractors);
+            },
+
+            getDistractors(target, pool, key1, key2 = null) {
+                const targetVal = target[key1] || (key2 ? target[key2] : null);
+                const opts = new Set();
+
+                // Try to find 3 unique distractors
+                let attempts = 0;
+                while (opts.size < 3 && attempts < 50) {
+                    const item = pool[Math.floor(Math.random() * pool.length)];
+                    const val = item[key1] || (key2 ? item[key2] : null);
+                    if (val && val !== targetVal) {
+                        opts.add(val);
+                    }
+                    attempts++;
+                }
+
+                // Fill if needed (shouldn't happen with enough data, but safety)
+                while (opts.size < 3) {
+                    opts.add("N/A " + Math.random().toString().substr(2, 3));
+                }
+
+                return Array.from(opts);
+            },
+
+            formatQuestion(text, correct, distractors) {
+                // Shuffle options
+                const options = [...distractors, correct];
+                for (let i = options.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [options[i], options[j]] = [options[j], options[i]];
+                }
+
+                return {
+                    text: text,
+                    options: options.map(o => ({
+                        text: o,
+                        isCorrect: o === correct
+                    })),
+                    correctAnswer: correct
+                };
+            },
+
+            renderQuiz() {
+                const qData = this.state.quiz;
+
+                // Update Progress
+                const pct = ((qData.currentQuestionIdx) / qData.questions.length) * 100;
+                document.getElementById('quizProgressBar').style.width = `${pct}%`;
+                document.getElementById('quizQNum').innerText = qData.currentQuestionIdx + 1;
+
+                // Get Current Question
+                const q = qData.questions[qData.currentQuestionIdx];
+                document.getElementById('quizQuestionText').innerHTML = q.text;
+                document.getElementById('quizFeedback').className = 'quiz-feedback';
+                document.getElementById('quizFeedback').style.display = 'none';
+
+                // Render Options
+                document.getElementById('quizOptions').innerHTML = q.options.map((opt, i) => `
+                    <button class="quiz-option-btn" onclick="App.handleQuizAnswer(${i})">
+                        ${opt.text}
+                    </button>
+                `).join('');
+            },
+
+            handleQuizAnswer(optIdx) {
+                const qData = this.state.quiz;
+                if (document.getElementById('quizFeedback').style.display === 'block') return; // Prevent double click
+
+                const q = qData.questions[qData.currentQuestionIdx];
+                const selected = q.options[optIdx];
+                const btns = document.querySelectorAll('.quiz-option-btn');
+
+                const fb = document.getElementById('quizFeedback');
+                fb.style.display = 'block';
+
+                if (selected.isCorrect) {
+                    this.state.quiz.score++;
+                    btns[optIdx].classList.add('correct');
+                    fb.innerHTML = "Correct! 🎉";
+                    fb.className = "quiz-feedback correct show";
+                    this.speak(selected.text); // Speak the answer if possible
+                } else {
+                    btns[optIdx].classList.add('wrong');
+                    // Highlight correct
+                    q.options.forEach((o, i) => {
+                        if (o.isCorrect) btns[i].classList.add('correct');
+                    });
+                    fb.innerHTML = `Incorrect. The correct answer is <strong>${q.correctAnswer}</strong>`;
+                    fb.className = "quiz-feedback wrong show";
+                }
+
+                // Next Question Delay
+                setTimeout(() => {
+                    this.state.quiz.currentQuestionIdx++;
+                    if (this.state.quiz.currentQuestionIdx >= qData.questions.length) {
+                        this.finishQuiz();
+                    } else {
+                        this.renderQuiz();
+                    }
+                }, 2000);
+            },
+
+            finishQuiz() {
+                document.getElementById('quiz-active').style.display = 'none';
+                document.getElementById('quiz-result').style.display = 'block';
+
+                const score = this.state.quiz.score;
+                const total = this.state.quiz.questions.length;
+                const pct = Math.round((score / total) * 100);
+
+                document.getElementById('quizFinalScore').innerText = `${score} / ${total}`;
+
+                let msg = "";
+                if (pct >= 90) msg = "Outstanding! 🌟";
+                else if (pct >= 80) msg = "Great job! 👍";
+                else if (pct >= 60) msg = "Good, but keep practicing. 📚";
+                else msg = "Don't give up! Try again. 💪";
+
+                document.getElementById('quizFeedbackText').innerText = `You scored ${pct}%. ${msg}`;
             },
 
             /* --- Actions --- */
